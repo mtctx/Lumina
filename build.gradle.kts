@@ -34,7 +34,7 @@ tasks {
 publishing {
     publications {
         create<MavenPublication>("github") {
-            groupId = "dev.nelmin.logger"
+            groupId = "dev.nelmin"
             artifactId = project.name
             version = project.property("project.version").toString()
 

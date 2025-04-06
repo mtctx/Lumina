@@ -80,4 +80,88 @@ object ANSI {
     const val ITALIC: String = "\u001B[3m"
     const val UNDERLINE: String = "\u001B[4m"
     const val STRIKETHROUGH: String = "\u001B[9m"
+
+    /**
+     * Retrieves the ANSI color code corresponding to the given color character.
+     *
+     * @param colorChar The character representing a color.
+     * @return The ANSI color code as a string if the character is valid, or null if the character is unsupported.
+     */
+    private fun getANSICode(colorChar: Char): String? = when (colorChar) {
+        '0' -> BLACK
+        '1' -> BLUE
+        '2' -> GREEN
+        '3' -> CYAN
+        '4' -> RED
+        '5' -> PURPLE
+        '6' -> YELLOW
+        '7' -> WHITE
+        '8' -> HIGH_INTENSITY_BLACK
+        '9' -> HIGH_INTENSITY_BLUE
+        'a' -> HIGH_INTENSITY_GREEN
+        'b' -> HIGH_INTENSITY_CYAN
+        'c' -> HIGH_INTENSITY_RED
+        'd' -> HIGH_INTENSITY_PURPLE
+        'e' -> HIGH_INTENSITY_YELLOW
+        'f' -> HIGH_INTENSITY_WHITE
+        'g' -> YELLOW
+        'r' -> RESET
+        else -> null
+    }
+
+    /**
+     * Translates a given string by converting specific characters into their corresponding
+     * ANSI escape codes or other specified transformations. The method also processes escaped
+     * characters, optimizing special cases.
+     * Escape the translating by using \& instead of &
+     *
+     * @param text The input string to be processed.
+     * @param char The character to be interpreted as a prefix for special codes or transformations. Defaults to '&'.
+     * @return A new string with applied translation based on specified transformations or unmodified if no transformations apply.
+     */
+    fun translateToANSI(text: String, char: Char = '&'): String {
+        if (char !in text && '\\' !in text) return text // Early exit optimization
+
+        val result = StringBuilder(text.length + 32)
+        var i = 0
+        var lastPos = 0
+        val length = text.length
+
+        while (i < length) {
+            // Handle escaped special character (e.g., `\&` → `&`)
+            if (text[i] == '\\' && i + 1 < length && text[i + 1] == char) {
+                if (lastPos < i) {
+                    result.append(text, lastPos, i)
+                }
+                result.append(char)
+                i += 2
+                lastPos = i
+                continue
+            }
+
+            if (text[i] == char && i + 1 < length) {
+                val nextChar = text[i + 1]
+                val colorChar = if (nextChar in 'A'..'Z') (nextChar.code + 32).toChar() else nextChar
+                val ansiCode = getANSICode(colorChar)
+
+                if (ansiCode != null) {
+                    if (lastPos < i) {
+                        result.append(text, lastPos, i)
+                    }
+                    result.append(ansiCode)
+                    i += 2
+                    lastPos = i
+                    continue
+                }
+            }
+
+            i++
+        }
+
+        if (lastPos < length) {
+            result.append(text, lastPos, length)
+        }
+
+        return result.toString()
+    }
 }
