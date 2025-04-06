@@ -69,31 +69,23 @@ jobs:
           gradle-version: 8.13
           cache-read-only: true
 
-      - name: Extract Version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            VERSION=$(grep "project.version" gradle.properties | cut -d'=' -f2)
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-          fi
-
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
           name: Lumina-${{ github.run_id }}
           path: build/libs
 
-      - name: Update Version in Properties
+      - name: Verify checksum
         run: |
-          sed -i "s/project.version=.*/project.version=${{ steps.version.outputs.version }}/" gradle.properties
+          cd build/libs
+          echo "$(cat Lumina.jar.sha256)  Lumina.jar" | sha256sum -c
 
       - name: Publish with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-        run: ./gradlew publish --info
+          JAR_HASH: ${{ needs.build.outputs.jar_hash }}
+        run: ./gradlew publish
 
   release:
     needs: build
