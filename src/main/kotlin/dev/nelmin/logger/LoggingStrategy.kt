@@ -12,81 +12,97 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ExecutorService
 
 /**
- * A base class for defining a logging strategy.
- * Provides methods for formatting log messages, generating console and file-specific log outputs,
- * and writing log messages to a persistent file. The class supports multiple constructors
- * to initialize the logging setup with either a predefined path or a filename.
+ * A logging strategy class used to handle logging operations, including writing to a file
+ * and outputting to the console with varied formatting capabilities. It leverages an
+ * asynchronous strategy using an `ExecutorService` to handle log processing and execution
+ * to ensure non-blocking behavior.
  */
 open class LoggingStrategy {
     /**
-     * A DateTimeFormatter instance used for formatting timestamps in the `HH:mm:ss.SSS` format.
-     * This formatter ensures consistent representation of time with hours, minutes, seconds,
-     * and milliseconds throughout the logging process in the containing logging strategy.
+     * A `DateTimeFormatter` used for formatting time values with the pattern "HH:mm:ss.SSS",
+     * representing hours, minutes, seconds, and milliseconds.
+     *
+     * This formatter is utilized to standardize time representations within the logging process
+     * by ensuring consistency across all logged messages.
      */
     val TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
     /**
-     * Represents the file system path utilized by the logging strategy for file-based logging operations.
-     * This path specifies the location where log files are stored or accessed.
+     * Represents the file system path used for logging or storing log files.
+     * This variable is used to define the location where log messages or related data
+     * will be recorded or accessed. It plays a central role in handling
+     * file-based operations within the logging strategy.
      */
     private val PATH: Path
     /**
-     * Defines the logging level for the application. Determines the verbosity of log messages
-     * produced by the logging system, such as DEBUG, INFO, WARN, or ERROR.
+     * Represents the log level for the logging strategy.
+     * Determines the severity level of log messages to be processed
+     * (e.g., DEBUG, INFO, WARN, ERROR).
      */
     private val LOG_LEVEL: String
     /**
-     * ExecutorService responsible for handling asynchronous logging tasks.
-     * Used to ensure that logging operations are performed efficiently
-     * without blocking the main thread.
+     * A thread pool executor service used by the LoggingStrategy for managing asynchronous tasks,
+     * such as handling log operations in a non-blocking manner.
      */
     private val executor: ExecutorService
     /**
-     * Represents the ANSI color code used for formatting console output.
-     * This variable is used internally within the logging strategy to apply
-     * color formatting to log messages for better readability in the console.
+     * ANSI color code used for formatting console output.
+     * Typically utilized to add colored text or highlights for better readability in log messages.
      */
     private val ANSIColor: String
 
     /**
-     * Initializes a new instance of the LoggingStrategy class.
+     * Indicates whether logging should output messages to the console.
      *
-     * @param path The file system path to be used for logging purposes, stored as an absolute path.
-     * @param logLevel Specifies the logging level, determining the verbosity of logs.
-     * @param executor The ExecutorService responsible for handling asynchronous task execution.
-     * @param ansiColor The ANSI color code used for stylizing log messages in the console.
+     * When set to `true`, log messages will be printed to the console
+     * in addition to any other logging outputs configured in the system.
+     * When set to `false`, console logging is disabled.
      */
-    constructor(path: Path, logLevel: String, executor: ExecutorService, ansiColor: String) {
+    private val logToConsole: Boolean
+
+    /**
+     * Constructs a LoggingStrategy instance with the specified configuration.
+     *
+     * @param path The path where log files are stored. This will be resolved to an absolute path.
+     * @param logLevel The logging level to determine the verbosity of log messages.
+     * @param executor The executor service used for asynchronous log operations.
+     * @param ansiColor The ANSI color code for log messages, used for formatting in console outputs.
+     * @param logToConsole Flag indicating whether the logs should be output to the console. Defaults to true.
+     */
+    constructor(path: Path, logLevel: String, executor: ExecutorService, ansiColor: String, logToConsole: Boolean = true) {
         this.PATH = path.toAbsolutePath()
         this.LOG_LEVEL = logLevel
         this.executor = executor
         this.ANSIColor = ansiColor
+        this.logToConsole = logToConsole
     }
 
     /**
-     * Constructor for initializing a LoggingStrategy instance with specified parameters.
+     * Constructs an instance of the LoggingStrategy class.
      *
-     * @param fileName The name of the log file to be used for logging. This is converted to lowercase and
-     *                 saved with a `.log` extension under the `logs` directory in the user working directory.
-     * @param logLevel The logging level used to filter logged messages.
-     * @param executor An instance of ExecutorService responsible for managing asynchronous logging tasks.
-     * @param ansiColor ANSI color code used to format console log messages with a specific color.
+     * @param fileName The name of the log file to be created and used by this logging strategy.
+     * @param logLevel The level of logging (e.g., DEBUG, INFO, ERROR) to be applied.
+     * @param executor The executor service used to perform asynchronous logging tasks.
+     * @param ansiColor The ANSI color code to be used for colored console logging.
+     * @param logToConsole Determines whether the logs should also be printed to the console. Defaults to true.
      */
     constructor(
         fileName: String, logLevel: String, executor: ExecutorService,
-        ansiColor: String
+        ansiColor: String, logToConsole: Boolean = true
     ) {
         this.PATH = Path.of(System.getProperty("user.dir"), "logs", fileName.lowercase() + ".log")
             .toAbsolutePath()
         this.LOG_LEVEL = logLevel
         this.executor = executor
         this.ANSIColor = ansiColor
+        this.logToConsole = logToConsole
     }
 
     /**
-     * Formats a given timestamp into a human-readable string representation based on the default time zone.
+     * Converts a given timestamp in milliseconds to a formatted date-time string
+     * based on the system's default time zone.
      *
-     * @param timestamp The timestamp in milliseconds since the epoch to be formatted.
-     * @return A string representation of the formatted timestamp.
+     * @param timestamp The timestamp in milliseconds to format.
+     * @return A string representation of the formatted date-time.
      */
     fun formatTimestamp(timestamp: Long): String {
         return TIME_FORMATTER.format(
@@ -98,12 +114,16 @@ open class LoggingStrategy {
     }
 
     /**
-     * Logs a message with the specified parameters and writes it to both the console and a log file.
+     * Logs the given content with a specific format to both the console and a designated file.
      *
-     * @param name The name or tag identifying the source or type of the log.
-     * @param format The format string defining the structure of the log message.
-     * @param timestamp The timestamp of the log entry as a long value.
-     * @param content Additional content to be included in the log message.
+     * This method formats the log message using the provided format and then outputs it to the console
+     * if `logToConsole` is enabled, as well as writes it to a file. The execution is handled
+     * asynchronously using an executor.
+     *
+     * @param name The identifier or source of the log message.
+     * @param format The format string used to structure the log message. It may include placeholders like %log_level or %package:%line.
+     * @param timestamp The timestamp of when the log was generated, represented as a Unix epoch time in milliseconds.
+     * @param content The variable-length arguments representing the contents to be included in the log message.
      */
     open fun log(name: String, format: String, timestamp: Long, vararg content: Any) {
         val stackTraceElements = Thread.currentThread().stackTrace
@@ -115,16 +135,18 @@ open class LoggingStrategy {
                 stringBuilder.append(`object`)
             }
             try {
-                println(
-                    generateConsoleMessage(
-                        name,
-                        stringBuilder,
-                        format,
-                        timestamp,
-                        caller,
-                        *content
+                if (logToConsole) {
+                    println(
+                        generateConsoleMessage(
+                            name,
+                            stringBuilder,
+                            format,
+                            timestamp,
+                            caller,
+                            *content
+                        )
                     )
-                )
+                }
                 writeToFile(
                     generateLogFileMessage(
                         name,
@@ -142,15 +164,15 @@ open class LoggingStrategy {
     }
 
     /**
-     * Generates a formatted message based on the provided input parameters.
+     * Generates a formatted message string by replacing placeholders in the given format string.
      *
-     * @param name The name used as a placeholder in the format string.
-     * @param builder A StringBuilder instance used to append or process additional message content.
-     * @param format The string format defining how the final message should be structured.
-     * @param timestamp The timestamp value used to replace the %timestamp placeholder in the format string.
-     * @param caller A StackTraceElement providing information about the caller, such as its class name and line number.
-     * @param content Additional optional content to be included in the message.
-     * @return A string containing the generated message after replacing the placeholders with the specified values.
+     * @param name The name to be incorporated into the message, typically representing the source or context of the message.
+     * @param builder A StringBuilder instance containing content to replace the `%content` placeholder in the format string.
+     * @param format The format template string containing placeholders to be replaced.
+     * @param timestamp The timestamp to format and replace the `%timestamp` placeholder in the format string.
+     * @param caller StackTraceElement representing the caller's context to replace placeholders like `%package` and `%line`.
+     * @param content Additional variable arguments that may provide supplementary data for the message generation.
+     * @return A String containing the formatted message with all placeholders replaced.
      */
     open fun generateMessage(
         name: String, builder: StringBuilder, format: String, timestamp: Long,
@@ -173,15 +195,20 @@ open class LoggingStrategy {
     }
 
     /**
-     * Generates a formatted console message with the provided parameters.
+     * Generates a console message by formatting and processing the given parameters.
+     * The message is enhanced with ANSI color codes and replaces placeholders in
+     * the format string with dynamic values.
      *
-     * @param name The name or identifier for the message source.
-     * @param builder A StringBuilder instance used to construct the message.
-     * @param format The format string for constructing the message.
-     * @param timestamp The timestamp associated with the message, typically in milliseconds since epoch.
-     * @param caller The stack trace element representing the caller of this method.
-     * @param content Additional content or arguments for the formatted message.
-     * @return A formatted console message as a String, with ANSI codes applied, or null if message generation fails.
+     * @param name The name or identifier of the logger or context generating the message.
+     * @param builder A StringBuilder containing the main content of the log message.
+     * @param format The format string for constructing the log message.
+     *               Placeholders like %timestamp, %name, %content, etc., will be replaced dynamically.
+     * @param timestamp The timestamp of the log event, represented in milliseconds since the epoch.
+     * @param caller The stack trace element representing the calling context for the log
+     *               (e.g., class name, line number, etc.).
+     * @param content Varargs representing additional content or data to be included in the message.
+     * @return A formatted and processed console message string with applied ANSI translations or
+     *         null if the formatting process fails.
      */
     open fun generateConsoleMessage(
         name: String, builder: StringBuilder, format: String, timestamp: Long,
@@ -194,16 +221,16 @@ open class LoggingStrategy {
     }
 
     /**
-     * Generates a formatted log file message by customizing the input format string to include
-     * package and line information, and then delegates to the underlying message generator.
+     * Generates a log file message by formatting the provided parameters into the specified format.
+     * Ensures that the log level and caller's package and line information are included in the final message.
      *
-     * @param name The name associated with the log message, typically identifying the source or context.
-     * @param builder A StringBuilder containing additional content to include in the message.
-     * @param format The format template for the log message, which may include placeholders like %log_level, %package, %line, etc.
-     * @param timestamp The timestamp to include in the log message, typically representing when the log event occurred.
-     * @param caller A StackTraceElement representing the caller's class, method, and line number information.
-     * @param content Additional content elements to be embedded in the formatted log message as specified in the format template.
-     * @return A formatted log message string intended for log file output.
+     * @param name The name of the logger or source generating the log message.
+     * @param builder A StringBuilder containing the content of the log.
+     * @param format The format string for the log message. May include placeholders like %log_level, %package, %line, etc.
+     * @param timestamp The Unix timestamp representing when the log event occurred.
+     * @param caller The stack trace element of the caller, containing information about the originating class and line number.
+     * @param content Additional parameters to be formatted into the log message.
+     * @return The formatted log file message as a String.
      */
     fun generateLogFileMessage(
         name: String, builder: StringBuilder, format: String, timestamp: Long,
@@ -218,10 +245,11 @@ open class LoggingStrategy {
     }
 
     /**
-     * Writes the specified message to a file. The message will be appended to the file,
-     * and a new line will be added after the message.
+     * Writes the given message to a file at the specified path.
+     * The file will be created if it does not exist, and the message
+     * will be appended if the file already exists.
      *
-     * @param message The log message to be written to the file.
+     * @param message The text message to be written to the file.
      * @throws IOException If an I/O error occurs while writing to the file.
      */
     @Throws(IOException::class)

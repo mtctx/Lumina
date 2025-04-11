@@ -1,63 +1,65 @@
+import com.vanniktech.maven.publish.SonatypeHost
+import java.util.Calendar
+
 plugins {
-    kotlin("jvm") version "2.1.10"
+    kotlin("jvm") version "2.1.20"
     id("maven-publish")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("signing")
+    id("com.vanniktech.maven.publish") version "0.31.0"
 }
 
-group = "dev.nelmin"
+group = project.property("project.group").toString()
 version = project.property("project.version").toString()
 
 repositories {
     mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {
-    /*implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
-    implementation("org.apache.commons:commons-compress:1.27.1")*/
-
     testImplementation(kotlin("test"))
 }
 
-
-tasks {
-    shadowJar {
-        archiveClassifier.set("")
-    }
-
-    jar {
-        enabled = false
-    }
+signing {
+    useGpgCmd()
 }
 
+mavenPublishing {
+    publishToMavenCentral(host = SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-publishing {
-    publications {
-        create<MavenPublication>("github") {
-            groupId = "dev.nelmin"
-            artifactId = project.name
-            version = project.property("project.version").toString()
+    coordinates(
+        groupId = project.property("project.group").toString(),
+        artifactId = project.property("project.artifact").toString(),
+        version = project.property("project.version").toString()
+    )
 
-            from(components["java"])
-            artifact(tasks["shadowJar"])
-        }
-    }
-
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/NelminDev/Lumina")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
+    pom {
+        name.set(project.property("project.artifact").toString())
+        description.set(project.property("publish.description").toString())
+        inceptionYear.set(Calendar.getInstance().get(Calendar.YEAR).toString())
+        url.set("https://github.com/NelminDev/${project.property("project.artifact")}")
+        licenses {
+            license {
+                name.set("GPL-3.0")
+                url.set("https://opensource.org/licenses/GPL-3.0")
             }
         }
+        developers {
+            developer {
+                id.set("nelmindev")
+                name.set("Nelmin")
+                email.set("me@nelmin.dev")
+            }
+        }
+        scm {
+            url.set("https://github.com/NelminDev/${project.property("project.artifact")}")
+            connection.set("scm:git:git://github.com/NelminDev/${project.property("project.artifact")}.git")
+            developerConnection.set("scm:git:ssh://git@github.com/NelminDev/${project.property("project.artifact")}.git")
+        }
     }
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
 kotlin {
     jvmToolchain(21)
 }
