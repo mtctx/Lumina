@@ -61,10 +61,21 @@ Logger.info("Everything is running smoothly ✨")
 Logger.error("Oops, something went wrong! 😅")
 ```
 
-For programs or MC Plugins without suspending functions:
-
+For Spigot/Paper/Purpur Plugins:
 ```kotlin
-Logger.startListeningForLogMessages()
+/**
+ * IMPORTANT: This is not using a Mutex, so please only call stopListeningForLogMessages inside onDisable !!!
+ */
+
+override fun onEnable() {
+    Logger.startListeningForLogMessages()
+    
+    Logger.queueInfo("Hello")
+}
+
+override fun onDisable() {
+    Logger.stopListeningForLogMessages()
+}
 ```
 
 ## 🎨 Log Levels
