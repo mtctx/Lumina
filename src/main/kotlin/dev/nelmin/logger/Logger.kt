@@ -1,253 +1,245 @@
 package dev.nelmin.logger
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.format
+import kotlinx.datetime.format.Padding
+import kotlinx.datetime.format.char
+import kotlinx.datetime.toLocalDateTime
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import kotlin.io.path.Path
 
 /**
- * Logger is a singleton object used for logging messages with various severity levels.
- * It provides different logging strategies for different log levels, and supports
- * logging both to the console and to log files. It also handles asynchronous logging tasks.
+ * Singleton object responsible for logging operations within the application.
+ * Provides various logging levels such as debug, error, fatal, info, warn,
+ * as well as stack trace logging. Supports both file and console logging.
  */
 object Logger {
     init {
-        Files.createDirectories(Path.of(System.getProperty("user.dir") + "/logs"))
+        Files.createDirectories(LoggerUtils.logsDir)
     }
 
     /**
      * Determines whether the logger operates in debug mode.
-     * The value is derived from the system property "debugMode".
-     * If the property is set and evaluates to `true`, debug mode is enabled.
+     *
+     * The value of this variable is derived from the system property `debugMode`. If the `debugMode` property
+     * is set and evaluates to `true`, this variable will be set to `true`. Otherwise, it defaults to `false`.
      */
     private var debug: Boolean = System.getProperty("debugMode")?.toBoolean() == true // Is the Logger in Debug Mode.
-    /**
-     * The name of the logger instance, used to identify logs produced by this logger.
-     */
-    private var name: String = "Lumina" // Name of the Logger.
 
     /**
-     * Defines a single-threaded executor service for managing task execution.
-     * This is typically used for executing tasks sequentially in a dedicated thread.
+     * Represents the default name used within the class or module.
+     * This may serve as a label, identifier, or default value in the context where it is used.
+     */
+    private var name: String = "Lumina"
+
+    /**
+     * Represents a mutable `CoroutineScope` instance initialized with a `SupervisorJob`.
      *
-     * The executor is useful when thread-safe task execution is required without
-     * complex synchronization. Tasks submitted to this executor are guaranteed to
-     * be executed in the order they are received.
-     */
-    private val executor: ExecutorService = Executors.newSingleThreadExecutor()
-    /**
-     * Specifies the debug logging strategy used for handling debug-level log messages.
-     * This variable is initialized with a `DebugLoggingStrategy` instance, which formats and logs
-     * messages asynchronously using the provided executor service while respecting the debug mode status.
+     * This variable is intended to provide a structured concurrency scope, which acts as the parent for
+     * child coroutines. The `SupervisorJob` ensures that cancellation or failure of one child coroutine
+     * does not propagate to other child coroutines within the scope.
      *
-     * The selected strategy allows for console output and file logging if the debug mode is enabled.
-     * It also ensures logs are generated with caller information and timestamps for better traceability.
+     * The `coroutineScope` variable is often used to launch coroutines that need to run independently
+     * and concurrently with error isolation.
      */
-    private var debugStrategy: DebugLoggingStrategy = DebugLoggingStrategy(executor, debug)
+    var coroutineScope = CoroutineScope(SupervisorJob())
+
     /**
-     * Represents the strategy for handling error-level logging.
-     *
-     * This property is configured to define the error logging approach using a specific
-     * log level, log category, executor, and ANSI color. The configuration influences
-     * how error logs are formatted and processed within the system.
+     * A mutex (mutual exclusion) object used to synchronize access to shared resources
+     * across multiple coroutines or threads, ensuring that only one coroutine or thread
+     * can access the protected resource at a time.
      */
-    private val errorStrategy: LoggingStrategy = LoggingStrategy(
-        "error", "ERROR", executor, ANSI.RED
-    )
+    var mutex = Mutex()
+
     /**
-     * Represents the logging strategy specifically configured for fatal-level log messages.
-     *
-     * This strategy includes a predefined log level of "error", a log type of "FATAL", and
-     * employs a specific executor for handling log operations while utilizing bold red ANSI styling
-     * for enhanced visual distinction of fatal messages.
+     * Represents a logging strategy specifically tailored for debug-level messages.
+     * This strategy is constructed using the `LoggingStrategyBuilder` with predefined
+     * configurations, including a unique name ("DEBUG"), a coroutine scope for asynchronous
+     * operations, a mutex for ensuring thread-safe file writes, and an ANSI color for
+     * console output customization.
      */
-    private val fatalStrategy: LoggingStrategy = LoggingStrategy(
-        "error", "FATAL", executor, ANSI.BOLD_RED
-    )
-    /**
-     * Represents a logging strategy configured with the "info" log level.
-     * Defines the log level name, ANSI color, and the executor responsible
-     * for executing the logging operations.
-     * Used to log informational messages for the application.
-     */
-    private val infoStrategy: LoggingStrategy = LoggingStrategy(
-        "info", "INFO", executor, ANSI.CYAN
-    )
-    /**
-     * Defines the logging strategy to be used for handling and processing stack traces.
-     * This variable is initialized with an instance of `StackTraceLoggingStrategy` which uses
-     * the provided executor for executing the logging operations.
-     */
-    private val stackTraceStrategy: LoggingStrategy = StackTraceLoggingStrategy(executor)
-    /**
-     * Defines a warning-level logging strategy for the application.
-     *
-     * This strategy specifies logging behaviors for messages categorized as warnings.
-     * It uses "info" as the descriptor for the logging type, applies "WARN" as the log level label,
-     * configures the given executor for handling logging operations, and colorizes warning messages
-     * using the ANSI yellow color code for better visibility in the console or log outputs.
-     */
-    private val warnStrategy: LoggingStrategy = LoggingStrategy(
-        "info", "WARN", executor, ANSI.YELLOW
-    )
-    /**
-     * A private logging strategy for handling error messages.
-     * This strategy is designed to specifically log error-level messages
-     * to a file while applying red ANSI coloring to the log output.
-     *
-     * @property errorToFileOnlyStrategy A constant instance of [LoggingStrategy] configured for error-level logging with red coloring.
-     */
-    private val errorToFileOnlyStrategy: LoggingStrategy = LoggingStrategy(
-        "error", "ERROR", executor, ANSI.RED, false
-    )
-    /**
-     * A private logging strategy instance configured specifically for handling fatal log messages.
-     * This strategy is designed to log messages of "FATAL" level and higher only to a file,
-     * and not to the console. It utilizes a specific color coding for better visual distinction.
-     *
-     * @property fatalToFileOnlyStrategy Represents the logging strategy for fatal level logs.
-     */
-    private val fatalToFileOnlyStrategy: LoggingStrategy = LoggingStrategy(
-        "error", "FATAL", executor, ANSI.BOLD_RED, false
-    )
-    /**
-     * Represents a logging strategy dedicated to logging informational messages to a file only.
-     * The logging level is set to "INFO", and the associated ANSI color for this strategy is cyan.
-     * This strategy does not enable any additional configuration flags by default.
-     */
-    private val infoToFileOnlyStrategy: LoggingStrategy = LoggingStrategy(
-        "info", "INFO", executor, ANSI.CYAN, false
-    )
-    /**
-     * A private instance of the `LoggingStrategy` class configured to log warnings to a file only.
-     * The strategy is initialized with specific logging preferences including:
-     * - Log level set to "info".
-     * - Log type set to "WARN".
-     * - An associated executor for asynchronous logging.
-     * - Text coloration for ANSI output set to yellow.
-     * - Excludes console logging by setting console output to false.
-     */
-    private val warnToFileOnlyStrategy: LoggingStrategy = LoggingStrategy(
-        "info", "WARN", executor, ANSI.YELLOW, false
+    private val debugStrategy: LoggingStrategy = LoggingStrategyBuilder(
+        strategyName = "DEBUG",
+        coroutineScope = coroutineScope,
+        mutex = mutex,
+        ansiColor = ANSI.GREEN,
     )
 
     /**
-     * Sets the name of the Logger.
+     * Represents a logging strategy specifically designed for handling error-level logs.
      *
-     * @param name The name to be assigned to the Logger.
+     * This strategy is built using `LoggingStrategyBuilder` and assigned a name ("ERROR"),
+     * a coroutine scope for managing asynchronous operations, a mutex for ensuring
+     * thread-safe file writes, and an ANSI color code (`ANSI.RED`) for distinguishing error
+     * logs in the console output. The strategy aids in centralized and organized logging
+     * of error events in the application.
+     */
+    private val errorStrategy: LoggingStrategy = LoggingStrategyBuilder(
+        strategyName = "ERROR",
+        coroutineScope = coroutineScope,
+        mutex = mutex,
+        ansiColor = ANSI.RED,
+    )
+
+    /**
+     * Represents a logging strategy specifically tailored for handling fatal error messages.
+     *
+     * This strategy utilizes the `LoggingStrategyBuilder` to define a logging mechanism
+     * with the following characteristics:
+     * - The strategy is named "FATAL".
+     * - Operates within the provided coroutine scope for asynchronous logging operations.
+     * - Employs a mutex to ensure thread-safe logging to files.
+     * - Uses bold red ANSI color formatting to highlight fatal messages in the console.
+     *
+     * The `fatalStrategy` provides a specific configuration suitable for logging
+     * critical issues that may require immediate attention.
+     */
+    private val fatalStrategy: LoggingStrategy = LoggingStrategyBuilder(
+        strategyName = "FATAL",
+        coroutineScope = coroutineScope,
+        mutex = mutex,
+        ansiColor = ANSI.BOLD_RED,
+    )
+
+    /**
+     * A logging strategy for informational messages, customized with an "INFO" strategy name and
+     * a cyan-colored ANSI styling for console logs. This strategy enables thread-safe logging
+     * using a coroutine scope and mutex for synchronous file operations.
+     *
+     * The `infoStrategy` is built using the `LoggingStrategyBuilder` class, which inherits
+     * from the base `LoggingStrategy`. It is tailored for asynchronously logging information-level
+     * messages to both console and file with specific formatting and appearance.
+     */
+    private val infoStrategy: LoggingStrategy = LoggingStrategyBuilder(
+        strategyName = "INFO",
+        coroutineScope = coroutineScope,
+        mutex = mutex,
+        ansiColor = ANSI.CYAN,
+    )
+
+    /**
+     * Defines a logging strategy specifically for handling stack trace-based logs. This variable
+     * utilizes the `StackTraceLoggingStrategy`, which is a specialized implementation of the
+     * `LoggingStrategy` class.
+     *
+     * The `stackTraceStrategy` facilitates capturing, formatting, and logging stack trace information
+     * to both the console and a file. It provides mechanisms for thread-safe operations and leverages
+     * ANSI styling for console logs. This implementation is tailored to highlight the logs with a bold red
+     * color for better visibility.
+     *
+     * Parameters related to `stackTraceStrategy`:
+     * - `coroutineScope`: The coroutine scope used for asynchronous logging operations.
+     * - `mutex`: A thread-safety mechanism ensuring logs are written to files without race conditions.
+     * - `ANSI.BOLD_RED`: The ANSI color used to style log messages for console output, emphasizing them in red.
+     */
+    private val stackTraceStrategy: LoggingStrategy = StackTraceLoggingStrategy(coroutineScope, mutex, ANSI.BOLD_RED)
+
+    /**
+     * Defines a logging strategy for `WARN` level messages. This strategy is configured
+     * to log messages with a yellow ANSI color when printed to the console, and provides
+     * thread-safe file-based logging using the specified coroutine scope and mutex.
+     *
+     * The `warnStrategy` is initialized using the `LoggingStrategyBuilder` and encapsulates
+     * the behavior for handling log messages categorized under the warning level.
+     */
+    private val warnStrategy: LoggingStrategy = LoggingStrategyBuilder(
+        strategyName = "WARN",
+        coroutineScope = coroutineScope,
+        mutex = mutex,
+        ansiColor = ANSI.YELLOW,
+    )
+
+    /**
+     * Sets the name of the logger.
+     *
+     * @param name The new name to set for the logger.
      */
     fun setName(name: String) {
         Logger.name = name
     }
 
     /**
-     * Logs messages using the specified logging strategy and content.
+     * Logs a message using the specified logging strategy, format, and additional content.
+     * The log message is dynamically formatted based on whether debug mode is enabled
+     * and can optionally be logged to the console in addition to being logged using the strategy.
      *
-     * @param strategy the logging strategy used to define how the log is processed and output.
-     * @param content a variable number of arguments representing the content to be logged.
+     * @param strategy The logging strategy to use for logging the message.
+     * @param logToConsole A boolean indicating whether the log message should be printed to the console.
+     * @param content Vararg of additional content to include in the log message.
      */
-    fun log(strategy: LoggingStrategy, vararg content: Any) {
-        val formatNormal = "[%timestamp] - %log_level - %name - %content"
-        val formatDebug = "[%timestamp] - %log_level - %name - %package:%line - %content"
-        strategy.log(
-            name,
-            if (debug) formatDebug else formatNormal,
-            System.currentTimeMillis(),
-            *content
-        )
-    }
+    suspend fun log(strategy: LoggingStrategy, logToConsole: Boolean, vararg content: Any) =
+            strategy.log(
+                name,
+                if (debug)
+                    "[%timestamp] - %strategyName - %loggerName - %package:%line - %content"
+                else
+                    "[%timestamp] - %strategyName - %loggerName - %content",
+                Clock.System.now(),
+                logToConsole,
+                *content
+            )
 
     /**
-     * Logs the provided content using the debug logging strategy.
+     * Logs debugging information using the provided logging strategy.
      *
-     * @param content The vararg array of objects to be logged.
+     * @param content The content to be logged. Can include multiple objects or strings.
+     * @param logToConsole A boolean flag indicating whether the log should also be output to the console. Defaults to true.
      */
-    fun debug(vararg content: Any) {
-        log(debugStrategy, *content)
-    }
+    suspend fun debug(vararg content: Any, logToConsole: Boolean = true) =
+        log(debugStrategy, logToConsole, *content)
 
     /**
-     * Logs the provided content as an error using the specified logging strategy.
+     * Logs an error message using the specified logging strategy.
      *
-     * @param content The content to be logged, provided as a variable-length argument list.
+     * @param content The contents or messages to be logged.
+     * @param logToConsole Indicates whether the error message should also be logged to the console. Defaults to true.
      */
-    fun error(vararg content: Any) {
-        log(errorStrategy, *content)
-    }
+    suspend fun error(vararg content: Any, logToConsole: Boolean = true) =
+        log(errorStrategy, logToConsole, *content)
 
     /**
-     * Logs the given content using a fatal logging strategy.
+     * Logs a fatal level message using the provided logging strategy.
      *
-     * @param content The content to be logged. Multiple arguments can be provided.
+     * @param content Vararg parameter representing the message content to be logged.
+     * @param logToConsole A boolean flag to determine whether the log should also be output to the console. Defaults to true.
      */
-    fun fatal(vararg content: Any) {
-        log(fatalStrategy, *content)
-    }
+    suspend fun fatal(vararg content: Any, logToConsole: Boolean = true) =
+        log(fatalStrategy, logToConsole, *content)
 
     /**
-     * Logs information messages using the info logging strategy.
+     * Logs the provided content using the info logging strategy.
      *
-     * @param content The data to be logged. Accepts a variable number of arguments of any type.
+     * @param content An array of content objects to be logged.
+     * @param logToConsole Indicates whether the logs should also be printed to the console. The default value is true.
      */
-    fun info(vararg content: Any) {
-        log(infoStrategy, *content)
-    }
+    suspend fun info(vararg content: Any, logToConsole: Boolean = true) =
+        log(infoStrategy, logToConsole, *content)
 
     /**
-     * Logs the provided stack trace using the configured logging strategy.
+     * Logs the provided throwable stack trace using the configured logging strategy.
      *
-     * @param stackTrace The throwable whose stack trace will be logged.
+     * @param stackTrace The throwable whose stack trace needs to be logged.
+     * @param logToConsole Whether the stack trace should also be logged to the console. Defaults to true.
      */
-    fun stacktrace(stackTrace: Throwable) {
-        log(stackTraceStrategy, stackTrace)
-    }
+    suspend fun stacktrace(stackTrace: Throwable, logToConsole: Boolean = true) =
+        log(stackTraceStrategy, logToConsole, stackTrace)
 
     /**
-     * Logs a warning message using the specified logging strategy.
+     * Logs a warning message using the specified warn strategy.
      *
-     * @param content The content to be logged as a warning. Can accept multiple arguments.
+     * @param content The content elements to be logged as a warning.
+     * @param logToConsole Determines whether the message should also be logged to the console. Default is true.
      */
-    fun warn(vararg content: Any) {
-        log(warnStrategy, *content)
-    }
-
-    /**
-     * Logs error messages using an error logging strategy without displaying them to the user.
-     * This function is intended to silently log errors for diagnostic purposes.
-     *
-     * @param content The messages or objects to be logged as error, provided as vararg arguments.
-     */
-    fun errorSilent(vararg content: Any) {
-        log(errorToFileOnlyStrategy, *content)
-    }
-
-    /**
-     * Logs the provided content using a fatal log level strategy that outputs only to a file,
-     * without displaying the log in the console or other output mediums.
-     *
-     * @param content The content to be logged. Can include multiple objects or messages,
-     *                which will be formatted and logged using the defined strategy.
-     */
-    fun fatalSilent(vararg content: Any) {
-        log(fatalToFileOnlyStrategy, *content)
-    }
-
-    /**
-     * Logs informational messages silently following a specific logging strategy.
-     * The messages will only be logged to a file without any additional output.
-     *
-     * @param content The content to be logged. Can be a variable number of arguments of any type.
-     */
-    fun infoSilent(vararg content: Any) {
-        log(infoToFileOnlyStrategy, *content)
-    }
-
-    /**
-     * Logs the provided content using the warn-to-file-only strategy without generating console output.
-     *
-     * @param content A variable number of arguments to be logged as warning messages.
-     */
-    fun warnSilent(vararg content: Any) {
-        log(warnToFileOnlyStrategy, *content)
-    }
+    suspend fun warn(vararg content: Any, logToConsole: Boolean = true) =
+        log(warnStrategy, logToConsole, *content)
 }
