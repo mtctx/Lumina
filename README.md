@@ -15,6 +15,7 @@ Lumina is like a Swiss Army knife for logging - simple on the surface, but packe
 - ⏱️ **Improved Timestamp Handling**: Using `kotlinx.datetime.Instant` for precise time tracking
 - 🧵 **Thread-Safe Logging**: Ensures safe and consistent logging across multiple threads using `Mutex`
 - 🛠️ **Custom Logging Strategies**: Easily build custom logging strategies with the new `LoggingStrategyBuilder`
+- 📦 **Message Queuing**: Utilizes message queuing via a `Channel` for asynchronous log processing.
 
 ## 🎮 Quick Start
 
@@ -24,7 +25,7 @@ Import it via maven central:
 <summary>Gradle</summary>
 
 ```gradle
-implementation 'dev.nelmin:lumina:2.0.0'
+implementation 'dev.nelmin:lumina:2.0.1'
 ```
 
 </details>
@@ -33,7 +34,7 @@ implementation 'dev.nelmin:lumina:2.0.0'
 <summary>Gradle (Kotlin)</summary>
 
 ```kts
-implementation("dev.nelmin:lumina:2.0.0")
+implementation("dev.nelmin:lumina:2.0.1")
 ```
 
 </details>
@@ -45,7 +46,7 @@ implementation("dev.nelmin:lumina:2.0.0")
 <dependency>
     <groupId>dev.nelmin</groupId>
     <artifactId>lumina</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
@@ -60,15 +61,21 @@ Logger.info("Everything is running smoothly ✨")
 Logger.error("Oops, something went wrong! 😅")
 ```
 
+For programs or MC Plugins without suspending functions:
+
+```kotlin
+Logger.startListeningForLogMessages()
+```
+
 ## 🎨 Log Levels
 
 Lumina comes with five flavors of logging:
-- 🟦 [**DEBUG**](src/main/kotlin/dev/nelmin/logger/LoggingStrategy.kt): For when you're being extra curious
-- ℹ️ [**INFO**](src/main/kotlin/dev/nelmin/logger/LoggingStrategy.kt): For the "nice to know" stuff
-- ⚠️ [**WARN**](src/main/kotlin/dev/nelmin/logger/LoggingStrategy.kt): For "heads up!" moments
-- 🔴 [**ERROR**](src/main/kotlin/dev/nelmin/logger/LoggingStrategy.kt): For when things go wrong
-- ⛔ [**FATAL**](src/main/kotlin/dev/nelmin/logger/LoggingStrategy.kt): For those "we need to talk" situations
-- ⛔ [**STACKTRACE**](src/main/kotlin/dev/nelmin/logger/StackTraceLoggingStrategy.kt): For those "F*CK" situations
+- 🟦 [**DEBUG**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For when you're being extra curious
+- ℹ️ [**INFO**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For the "nice to know" stuff
+- ⚠️ [**WARN**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For "heads up!" moments
+- 🔴 [**ERROR**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For when things go wrong
+- ⛔ [**FATAL**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For those "we need to talk" situations
+- ⛔ [**STACKTRACE**](src/main/kotlin/dev/nelmin/logger/strategy/StackTraceLoggingStrategy.kt): For those "F*CK" situations
 
 ## 🗺️ Future Roadmap
 
