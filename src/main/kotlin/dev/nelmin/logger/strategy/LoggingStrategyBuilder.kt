@@ -1,4 +1,4 @@
-package dev.nelmin.logger
+package dev.nelmin.logger.strategy
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex

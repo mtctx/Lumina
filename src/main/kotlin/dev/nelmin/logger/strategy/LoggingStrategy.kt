@@ -1,5 +1,7 @@
-package dev.nelmin.logger
+package dev.nelmin.logger.strategy
 
+import dev.nelmin.logger.ANSI
+import dev.nelmin.logger.LoggerUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

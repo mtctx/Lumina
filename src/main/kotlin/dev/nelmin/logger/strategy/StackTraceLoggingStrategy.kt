@@ -1,9 +1,10 @@
-package dev.nelmin.logger
+package dev.nelmin.logger.strategy
 
+import dev.nelmin.logger.ANSI
+import dev.nelmin.logger.LoggerUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.datetime.Instant
-import java.util.*
 
 /**
  * A logging strategy implementation for handling and formatting stack trace information.
