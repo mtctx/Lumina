@@ -1,8 +1,13 @@
 ## 🎯 Release Overview
 
-Version 2.0.1 includes refactoring of the logging system with structured messaging and queuing, alongside moving logging strategy classes to a new package.
+Version 2.0.3 introduces a simplified `LogMessage` content structure and updates the project version.
 
 ## 🚀 Key Features
+
+- **Simplified LogMessage Content**:
+  - Replaced vararg content in `LogMessage` with a single `Any` type for simplicity.
+  - Adjusted related logic to accommodate the change.
+  - Removed custom equals/hashCode in `LogMessage` for better maintainability.
 
 - **Refactored Logging Strategies**:
   - Logging strategy classes have been moved to a dedicated `strategy` package for better organization.
@@ -16,7 +21,7 @@ Version 2.0.1 includes refactoring of the logging system with structured messagi
 
 ## 📦 Installation
 
-1. Update your Gradle or Maven dependency to version 2.0.1.
+1. Update your Gradle or Maven dependency to version 2.0.3.
 2. The library will be updated automatically.
 
 ## 💻 For Developers
@@ -27,7 +32,7 @@ To use Lumina's logging capabilities, update your dependencies as follows:
 <summary>Gradle</summary>
 
 ```gradle
-implementation 'dev.nelmin:lumina:2.0.1'
+implementation 'dev.nelmin:lumina:2.0.3'
 ```
 
 </details>
@@ -36,7 +41,7 @@ implementation 'dev.nelmin:lumina:2.0.1'
 <summary>Gradle (Kotlin)</summary>
 
 ```kts
-implementation("dev.nelmin:lumina:2.0.1")
+implementation("dev.nelmin:lumina:2.0.3")
 ```
 
 </details>
@@ -46,9 +51,9 @@ implementation("dev.nelmin:lumina:2.0.1")
 
 ```xml
 <dependency>
-    <groupId>dev.nelmin</groupId>
-    <artifactId>lumina</artifactId>
-    <version>2.0.1</version>
+  <groupId>dev.nelmin</groupId>
+  <artifactId>lumina</artifactId>
+  <version>2.0.3</version>
 </dependency>
 ```
 
@@ -63,5 +68,5 @@ Key components:
 ## 📌 System Requirements
 
 - Kotlin 2.1.20 or higher
-- Coroutines library (Optional)
+- Coroutines library
 - kotlinx-datetime

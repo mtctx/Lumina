@@ -12,6 +12,14 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.datetime.Clock
 import java.nio.file.Files
 
+fun main() {
+    Logger.startListeningForLogMessages()
+    Thread.sleep(3000L)
+    Logger.queueInfo("Hello World!")
+    Thread.sleep(3000L)
+    Logger.stopListeningForLogMessages()
+}
+
 /**
  * Logger is a utility object for handling logging operations within the application.
  * It supports various logging levels such as debug, error, fatal, info, stacktrace, and warn.
@@ -146,7 +154,7 @@ object Logger {
     fun queue(strategy: LoggingStrategy, logToConsole: Boolean = true, vararg content: Any) =
         logChannel.trySend(
             LogMessage(
-                content,
+                content.joinToString(" ") { it.toString() },
                 logToConsole,
                 strategy
             )

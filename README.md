@@ -25,7 +25,7 @@ Import it via maven central:
 <summary>Gradle</summary>
 
 ```gradle
-implementation 'dev.nelmin:lumina:2.0.1'
+implementation 'dev.nelmin:lumina:2.0.3'
 ```
 
 </details>
@@ -34,7 +34,7 @@ implementation 'dev.nelmin:lumina:2.0.1'
 <summary>Gradle (Kotlin)</summary>
 
 ```kts
-implementation("dev.nelmin:lumina:2.0.1")
+implementation("dev.nelmin:lumina:2.0.3")
 ```
 
 </details>
@@ -46,7 +46,7 @@ implementation("dev.nelmin:lumina:2.0.1")
 <dependency>
     <groupId>dev.nelmin</groupId>
     <artifactId>lumina</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.3</version>
 </dependency>
 ```
 
@@ -63,13 +63,10 @@ Logger.error("Oops, something went wrong! 😅")
 
 For Spigot/Paper/Purpur Plugins:
 ```kotlin
-/**
- * IMPORTANT: This is not using a Mutex, so please only call stopListeningForLogMessages inside onDisable !!!
- */
-
+// IMPORTANT: This is not using a Mutex, so please only call stopListeningForLogMessages inside onDisable !!!
 override fun onEnable() {
     Logger.startListeningForLogMessages()
-    
+
     Logger.queueInfo("Hello")
 }
 
@@ -87,11 +84,6 @@ Lumina comes with five flavors of logging:
 - 🔴 [**ERROR**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For when things go wrong
 - ⛔ [**FATAL**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For those "we need to talk" situations
 - ⛔ [**STACKTRACE**](src/main/kotlin/dev/nelmin/logger/strategy/StackTraceLoggingStrategy.kt): For those "F*CK" situations
-
-## 🗺️ Future Roadmap
-
-Get excited! Here's what's cooking for future releases:
-- 🔄 Log rotation capabilities
 
 ## 📜 License
 
