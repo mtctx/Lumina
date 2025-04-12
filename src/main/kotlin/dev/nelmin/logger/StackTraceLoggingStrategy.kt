@@ -1,98 +1,87 @@
 package dev.nelmin.logger
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.datetime.Instant
 import java.util.*
-import java.util.concurrent.ExecutorService
 
 /**
- * A logging strategy implementation for handling and formatting stack trace logs.
- * This class extends the base `LoggingStrategy` and focuses on structuring stack
- * trace information with enhanced formatting and additional context.
+ * A logging strategy implementation for handling and formatting stack trace information.
  *
- * The strategy is designed to process exceptions (`Throwable`) embedded in log content
- * and generate formatted messages containing detailed stack trace information.
+ * This strategy is utilized to log stack traces with enhanced formatting, which includes
+ * headers, detailed exception information, and ANSI coloring support for better readability
+ * in console outputs.
  *
- * The logger includes:
- * - Header and footer markers to indicate the start and end of the stack trace section.
- * - Exception details such as class name, message, and primary stack trace location.
- * - Recursive processing of exception causes with clear hierarchy and timestamps.
- *
- * The formatted logs are colorized for console outputs to enhance readability.
- *
- * @constructor Initializes the `StackTraceLoggingStrategy` with a specified `ExecutorService`.
- *
- * @param executor The executor service used within the logging infrastructure.
+ * @constructor Initializes the StackTraceLoggingStrategy with the given coroutine scope, mutex, and ANSI color definitions.
+ * @param coroutineScope Coroutine scope for managing asynchronous operations.
+ * @param mutex Mutex for thread-safe operations.
+ * @param ansiColor ANSI color code for enhanced visual representation in console messages.
  */
-class StackTraceLoggingStrategy(executor: ExecutorService) : LoggingStrategy(
-    "error",
+class StackTraceLoggingStrategy(coroutineScope: CoroutineScope, mutex: Mutex, ansiColor: String) : LoggingStrategy(
     "STACKTRACE",
-    executor,
-    ANSI.BOLD_RED
+    coroutineScope,
+    mutex,
+    ansiColor
 ) {
     /**
-     * Generates a formatted error or debug message by incorporating stack trace details, timestamp,
-     * and additional content for logging purposes.
+     * Generates a formatted log message string consisting of a header,
+     * stack trace details for any `Throwable` objects included in the content, and a footer.
      *
-     * @param name The name or identifier of the module/plugin that is generating the log message.
-     * @param builder A StringBuilder instance used to construct the message.
-     * @param format A format string, typically determining the timestamp or other log formatting requirements.
-     * @param timestamp The Unix timestamp (in milliseconds) representing when the message was generated.
-     * @param caller The stack trace element representing the caller of this method.
-     * @param content Additional objects or exceptions to be processed and appended to the message.
-     * @return A formatted string representing the constructed log message with stack trace details.
+     * @param name The name of the logger or context generating the message.
+     * @param builder A `StringBuilder` that may be used for temporary message construction.
+     * @param format The message format, currently unused in this implementation.
+     * @param timestamp The timestamp of the event being logged.
+     * @param caller The calling class and method information wrapped in a `StackTraceElement`.
+     * @param content Vararg parameter to include additional content, particularly for Throwable exceptions.
+     * @return A fully constructed log message string containing formatted headers, stack trace, and footer details.
      */
     override fun generateMessage(
         name: String,
         builder: StringBuilder,
         format: String,
-        timestamp: Long,
+        timestamp: Instant,
         caller: StackTraceElement,
         vararg content: Any?
     ): String {
-        // Build the message with plain headers and process exceptions
         val messageBuilder = StringBuilder()
 
-        // Header
-        val header = String.format("[%s] ----------- STACKTRACE BEGIN -----------", formatTimestamp(timestamp))
+        val header = String.format("[%s] ----------- STACKTRACE BEGIN -----------", LoggerUtils.getFormattedTime(timestamp))
         messageBuilder.append(header).append("\n")
 
-        // Process Throwable in content
         for (obj in content) {
             if (obj is Throwable) {
                 processThrowable(name, obj, messageBuilder, timestamp)
             }
         }
 
-        // Footer
-        val footer = String.format("[%s] -----------  STACKTRACE END  -----------", formatTimestamp(timestamp))
+        val footer = String.format("[%s] -----------  STACKTRACE END  -----------", LoggerUtils.getFormattedTime(timestamp))
         messageBuilder.append(footer)
 
         return messageBuilder.toString()
     }
 
     /**
-     * Generates a console-friendly message by colorizing specific parts of the stack trace output.
+     * Generates a formatted, colorized console message including stack trace details by processing exceptions
+     * and appending stylistic enhancements to indicate the beginning and end of the stack trace.
      *
-     * This method processes a message, appends additional formatting, and highlights the "STACKTRACE BEGIN"
-     * and "STACKTRACE END" markers with specific colors for enhanced readability.
-     *
-     * @param name The name or identifier of the current logging context.
-     * @param builder A StringBuilder instance for constructing the message.
-     * @param format The format specifier used for the message.
-     * @param timestamp The timestamp associated with the log message, represented in milliseconds.
-     * @param caller The StackTraceElement representing the point in the application where logging occurred.
-     * @param content Optional additional content or objects passed, which may include Throwable instances.
-     * @return The fully formatted and colorized stack trace message as a String, or null if no content is available.
+     * @param name The name of the logging entity or source that generates the log entry.
+     * @param builder A StringBuilder instance to construct or append messages.
+     * @param format The message format specifying placeholders or the structure of the log output.
+     * @param timestamp The timestamp at which the log message is generated.
+     * @param caller A StackTraceElement representing the direct caller of the logging method.
+     * @param content Additional content such as throwable objects or other informational elements.
+     * @return A formatted and color-enhanced string representing the console message, or null if the generation fails.
      */
     override fun generateConsoleMessage(
         name: String,
         builder: StringBuilder,
         format: String,
-        timestamp: Long,
+        timestamp: Instant,
         caller: StackTraceElement,
         vararg content: Any?
     ): String? {
         val message = generateMessage(name, builder, format, timestamp, caller, *content)
-        val lines = Arrays.asList(*message.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
+        val lines = mutableListOf(*message.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
 
         // Colorize "STACKTRACE BEGIN" and "STACKTRACE END" in the first and last lines
         val coloredBegin = ANSI.BOLD_RED + "STACKTRACE BEGIN" + ANSI.RESET
@@ -105,15 +94,17 @@ class StackTraceLoggingStrategy(executor: ExecutorService) : LoggingStrategy(
     }
 
     /**
-     * Processes a throwable by appending its details, including its causes, to the provided StringBuilder.
+     * Processes a given throwable by appending its details and its causes recursively
+     * to the provided StringBuilder. Includes the name of the logger and a timestamp
+     * for each entry.
      *
-     * @param name The name of the module or component where the throwable originated.
-     * @param throwable The throwable to process and log details for.
-     * @param builder The StringBuilder to which the processed output will be appended.
-     * @param timestamp The timestamp indicating when the throwable was encountered.
+     * @param name The name of the logger associated with the throwable.
+     * @param throwable The throwable to be processed and logged.
+     * @param builder A StringBuilder instance where the log details are appended.
+     * @param timestamp The timestamp to associate with the log entries.
      */
-    private fun processThrowable(name: String, throwable: Throwable, builder: StringBuilder, timestamp: Long) {
-        builder.append(String.format("[%s] From (Module/Plugin/CandleMC): %s", formatTimestamp(timestamp), name))
+    private fun processThrowable(name: String, throwable: Throwable, builder: StringBuilder, timestamp: Instant) {
+        builder.append(String.format("[%s] From (Logger Name): %s", LoggerUtils.getFormattedTime(timestamp), name))
             .append("\n")
 
         // Haupt-Exception
@@ -128,20 +119,21 @@ class StackTraceLoggingStrategy(executor: ExecutorService) : LoggingStrategy(
     }
 
     /**
-     * Appends detailed exception information to the provided StringBuilder.
+     * Adds details of the provided exception to the given StringBuilder, including the exception type,
+     * message, and location in the source code where the exception occurred.
      *
-     * @param ex The throwable instance containing exception data.
-     * @param builder The StringBuilder where the exception details will be appended.
-     * @param timestamp The timestamp associated with the exception occurrence.
+     * @param ex The exception whose details are to be added.
+     * @param builder The StringBuilder to which the exception details will be appended.
+     * @param timestamp The timestamp at which the exception was logged.
      */
-    private fun addExceptionDetails(ex: Throwable, builder: StringBuilder, timestamp: Long) {
+    private fun addExceptionDetails(ex: Throwable, builder: StringBuilder, timestamp: Instant) {
         val line = String.format(
             "[%s] Exception: %s\n[%s] Message: %s\n[%s] At: %s - %s:%d",
-            formatTimestamp(timestamp),
+            LoggerUtils.getFormattedTime(timestamp),
             ex.javaClass.name,
-            formatTimestamp(timestamp),
+            LoggerUtils.getFormattedTime(timestamp),
             if (ex.message != null) ex.message else "N/A",
-            formatTimestamp(timestamp),
+            LoggerUtils.getFormattedTime(timestamp),
             ex.stackTrace[0].className,
             ex.stackTrace[0].fileName,
             ex.stackTrace[0].lineNumber
@@ -150,18 +142,18 @@ class StackTraceLoggingStrategy(executor: ExecutorService) : LoggingStrategy(
     }
 
     /**
-     * Appends details about the given cause to the provided StringBuilder.
+     * Appends detailed information about the specified cause to a given StringBuilder.
      *
-     * @param cause The Throwable representing the cause for which details should be added.
-     * @param builder The StringBuilder to which the cause details will be appended.
-     * @param timestamp The timestamp to associate with the logged cause details.
+     * @param cause The throwable cause whose details are being logged.
+     * @param builder The StringBuilder to which the cause details are appended.
+     * @param timestamp The timestamp indicating when the cause details are being logged.
      */
-    private fun addCauseDetails(cause: Throwable, builder: StringBuilder, timestamp: Long) {
+    private fun addCauseDetails(cause: Throwable, builder: StringBuilder, timestamp: Instant) {
         val line = String.format(
             "[%s] Caused by: %s\n[%s] Message: %s",
-            formatTimestamp(timestamp),
+            LoggerUtils.getFormattedTime(timestamp),
             cause.javaClass.name,
-            formatTimestamp(timestamp),
+            LoggerUtils.getFormattedTime(timestamp),
             if (cause.message != null) cause.message else "N/A"
         )
         builder.append(line).append("\n")

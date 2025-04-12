@@ -113,13 +113,13 @@ object ANSI {
      * Translates a given string by converting specific characters into their corresponding
      * ANSI escape codes or other specified transformations. The method also processes escaped
      * characters, optimizing special cases.
-     * Escape the translating by using \& instead of &
+     * Escape the translating by using \\& (in code) instead of &
      *
      * @param text The input string to be processed.
-     * @param char The character to be interpreted as a prefix for special codes or transformations. Defaults to '&'.
      * @return A new string with applied translation based on specified transformations or unmodified if no transformations apply.
      */
-    fun translateToANSI(text: String, char: Char = '&'): String {
+    fun translateToANSI(text: String): String {
+        val char = '&'
         if (char !in text && '\\' !in text) return text // Early exit optimization
 
         val result = StringBuilder(text.length + 32)
@@ -128,7 +128,7 @@ object ANSI {
         val length = text.length
 
         while (i < length) {
-            // Handle escaped special character (e.g., `\&` → `&`)
+            // Handle escaped special character (e.g., `\\&` (in code) → `&`)
             if (text[i] == '\\' && i + 1 < length && text[i + 1] == char) {
                 if (lastPos < i) {
                     result.append(text, lastPos, i)
