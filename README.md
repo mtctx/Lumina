@@ -1,3 +1,5 @@
+# This Project is unmaintained since 16th April 2025! - Lumina has been rewritten and merged with [NDCore](https://github.com/NelminDev/NDCore).
+
 # 🌟 Lumina - Modular Kotlin Logger
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
