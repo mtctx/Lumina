@@ -1,42 +1,40 @@
-# This Project is unmaintained since 16th April 2025! - Lumina has been rewritten and merged with [NDCore](https://github.com/NelminDev/NDCore).
+# 🌟 Lumina – Kotlin Logging That *Feels* Good
 
-# 🌟 Lumina - Modular Kotlin Logger
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-## ✨ What's Lumina?
+## ✨ What is Lumina?
 
-Lumina is like a Swiss Army knife for logging - simple on the surface, but packed with powerful features! It's a Kotlin-based logging library that makes tracking your application's behavior as easy as sending a text message.
+Lumina is a modern, **coroutine-first logger for Kotlin**.
+It’s lightweight, colorful, and modular — designed to keep your logs clear, structured, and fun to work with.
 
-### 🎯 Key Features
+Think of it as a **logging toolkit**: simple defaults for day-to-day work, but fully customizable when you need advanced
+setups.
 
-- 🌈 **Colorful Console Output**: Pretty [ANSI colors](src/main/kotlin/dev/nelmin/logger/ANSI.kt) make your logs pop! (Because who said logs have to be boring?)
-- 🔍 **Smart Stack Traces**: Detailed error tracking that actually makes sense
-- 🎨 **Extensible Design**: Like LEGOs, but for logging - build and customize as you need
-- 🚀 **Async Logging**: Non-blocking operations using Kotlin Coroutines keep your app speedy
-- 📝 **File-based Logging**: Everything gets neatly organized in log files
-- ⏱️ **Improved Timestamp Handling**: Using `kotlinx.datetime.Instant` for precise time tracking
-- 🧵 **Thread-Safe Logging**: Ensures safe and consistent logging across multiple threads using `Mutex`
-- 🛠️ **Custom Logging Strategies**: Easily build custom logging strategies with the new `LoggingStrategyBuilder`
-- 📦 **Message Queuing**: Utilizes message queuing via a `Channel` for asynchronous log processing.
+👉 Full API documentation: [lumina.apidoc.mtctx.dev](https://lumina.apidoc.mtctx.dev/)
+
+---
+
+## 🎯 Key Features
+
+* 🌈 **Colorful Console Output** – Pretty ANSI colors that make logs readable at a glance.
+* 🚀 **Asynchronous by Default** – Uses Kotlin coroutines and channels to keep logging off your main thread.
+* 🧵 **Thread-Safe Logging** – Safe across multiple threads using `Mutex`.
+* 📦 **Message Queuing** – All logs pass through a channel → no lost messages, no blocking.
+* 🔄 **Log Rotation** – Old log directories are automatically cleaned up.
+* 🛠️ **Extensible Strategies** – Build custom strategies with `LoggingStrategyBuilder`.
+* 📝 **File Logging Included** – Out-of-the-box structured log files per log level.
+
+---
 
 ## 🎮 Quick Start
 
-Import it via maven central:
+### 1. Add Dependency
 
 <details>
-<summary>Gradle</summary>
+<summary>Gradle (Kotlin DSL)</summary>
 
-```gradle
-implementation 'dev.nelmin:lumina:2.0.3'
-```
-
-</details>
-
-<details>
-<summary>Gradle (Kotlin)</summary>
-
-```kts
-implementation("dev.nelmin:lumina:2.0.3")
+```kotlin
+implementation("dev.mtctx.logger:lumina:4.0.0")
 ```
 
 </details>
@@ -45,54 +43,84 @@ implementation("dev.nelmin:lumina:2.0.3")
 <summary>Maven</summary>
 
 ```xml
+
 <dependency>
-    <groupId>dev.nelmin</groupId>
+  <groupId>dev.mtctx.logger</groupId>
     <artifactId>lumina</artifactId>
-    <version>2.0.3</version>
+  <version>4.0.0</version>
 </dependency>
 ```
 
 </details>
 
-then just use the Logger Singleton:
+---
+
+### 2. Initialize the Logger
 
 ```kotlin
-// Initialize the logger (it's a singleton, no need to create instances!)
-Logger.debug("Starting up my awesome app! 🚀")
-Logger.info("Everything is running smoothly ✨")
-Logger.error("Oops, something went wrong! 😅")
-```
+import dev.mtctx.logger.*
 
-For Spigot/Paper/Purpur Plugins:
-```kotlin
-// IMPORTANT: This is not using a Mutex, so please only call stopListeningForLogMessages inside onDisable !!!
-override fun onEnable() {
-    Logger.startListeningForLogMessages()
+fun main() {
+  val logger = Logger(LoggerConfig())
 
-    Logger.queueInfo("Hello")
-}
+  logger.info("Lumina is ready to shine! ✨")
+  logger.error("Something went wrong... but gracefully 😅")
 
-override fun onDisable() {
-    Logger.stopListeningForLogMessages()
+  // Always stop the logger gracefully
+  logger.waitForCoroutinesFinish()
 }
 ```
-
-## 🎨 Log Levels
-
-Lumina comes with five flavors of logging:
-- 🟦 [**DEBUG**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For when you're being extra curious
-- ℹ️ [**INFO**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For the "nice to know" stuff
-- ⚠️ [**WARN**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For "heads up!" moments
-- 🔴 [**ERROR**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For when things go wrong
-- ⛔ [**FATAL**](src/main/kotlin/dev/nelmin/logger/strategy/LoggingStrategy.kt): For those "we need to talk" situations
-- ⛔ [**STACKTRACE**](src/main/kotlin/dev/nelmin/logger/strategy/StackTraceLoggingStrategy.kt): For those "F*CK" situations
-
-## 📜 License
-
-Lumina is proudly open source under the GNU General Public License v3.0. Share the love! ❤️
 
 ---
 
-### 🌟 Remember
+## 🎨 Log Levels
 
-Lumina is like a trusty sidekick for your application - always there when you need it, never getting in your way when you don't!
+Lumina ships with ready-to-use strategies:
+
+* 🟦 **DEBUG** – for curious dev moments
+* ℹ️ **INFO** – the “nice to know” logs
+* ⚠️ **WARN** – heads-up situations
+* 🔴 **ERROR** – recoverable problems
+* ⛔ **FATAL** – “stop everything” issues
+
+---
+
+## ⚡ Sync vs Async Logging
+
+By default, all logs are asynchronous.
+If you really need *synchronous* logging (e.g. right before shutdown), Lumina provides `debugSync`, `errorSync`, etc.
+
+⚠️ **But use them carefully!** They can block if channels are full. (That’s why they’re annotated with
+`@UseSynchronousFunctionsWithCaution`.)
+
+---
+
+## 🛠️ Custom Strategies
+
+Need something special? You can build your own strategy:
+
+```kotlin
+val custom = LoggingStrategyBuilder(
+    strategyName = "CUSTOM",
+    coroutineScope = myScope,
+    mutex = Mutex(),
+    ansiColor = ANSI.PURPLE
+)
+```
+
+---
+
+## 📚 Docs
+
+Full API reference: [https://lumina.apidoc.mtctx.dev](https://lumina.apidoc.mtctx.dev/)
+
+---
+
+## 📜 License
+
+Lumina is open source under the **GNU GPL v3**.
+Use it, hack it, improve it — just keep it free. ❤️
+
+---
+
+✨ Lumina isn’t just a logger — it’s your app’s sidekick in understanding itself.

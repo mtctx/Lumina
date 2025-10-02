@@ -1,5 +1,5 @@
 /*
- *     Lumina: settings.gradle.kts
+ *     Lumina: LoggerCallerInfo.kt
  *     Copyright (C) 2025 mtctx
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,15 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+package dev.mtctx.logger
+
+data class LoggerCallerInfo(
+    val className: String,
+    val lineNumber: Int,
+)
+
+@JvmOverloads
+fun getCallerInfo(skipDepth: Int = 2): LoggerCallerInfo {
+    val element = Throwable().stackTrace[skipDepth]
+    return LoggerCallerInfo(element.className, element.lineNumber)
 }
-rootProject.name = "Lumina"
