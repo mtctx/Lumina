@@ -16,10 +16,10 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.logger
+package dev.mtctx.library
 
-import dev.mtctx.logger.strategy.LoggingStrategy
-import dev.mtctx.logger.strategy.LoggingStrategyBuilder
+import dev.mtctx.library.strategy.LoggingStrategy
+import dev.mtctx.library.strategy.LoggingStrategyBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 

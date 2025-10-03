@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.logger
+package dev.mtctx.library
 
 import kotlinx.datetime.*
 import kotlinx.datetime.format.Padding

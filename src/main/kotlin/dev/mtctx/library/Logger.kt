@@ -16,9 +16,9 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.logger
+package dev.mtctx.library
 
-import dev.mtctx.logger.strategy.LoggingStrategy
+import dev.mtctx.library.strategy.LoggingStrategy
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ChannelResult

@@ -16,15 +16,37 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import dev.mtctx.unipub.License
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinJvm
+
+/*
+ *     Lumina: build.gradle.kts
+ *     Copyright (C) 2025 mtctx
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 plugins {
     kotlin("jvm") version "2.1.20"
     id("org.jetbrains.dokka") version "2.1.0-Beta"
-    id("dev.mtctx.unipub") version "1.0.9"
+    id("org.jetbrains.dokka-javadoc") version "2.1.0-Beta"
+    //id("dev.mtctx.unipub") version "2.0.7" <-- Cannot inject into vanniktech properties lookup right now.
+    id("com.vanniktech.maven.publish") version "0.34.0"
+    signing
 }
 
-group = "dev.mtctx.logger"
+group = "dev.mtctx.library"
 version = "3.0.0"
 
 repositories {
@@ -40,41 +62,62 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-unipub {
-    project {
-        name = "Lumina"
-        id = "lumina"
-        description = "A Modular, Fast and easy to use Kotlin Logger"
-        inceptionYear = "2025"
-        url = "https://github.com/mtctx/Lumina"
+mavenPublishing {
+    coordinates(group.toString(), "lumina", version.toString())
 
-        licenses = listOf(License.GPL_V3)
+    pom {
+        name.set("Lumina")
+        description.set("A Modular, Fast and easy to use Kotlin Logger")
+        inceptionYear.set("2025")
+        url.set("https://github.com/mtctx/Lumina")
+
+        licenses {
+            license {
+                name.set("GNU General Public License v3.0")
+                url.set("https://www.gnu.org/licenses/gpl-3.0.html")
+                distribution.set("repo")
+            }
+        }
 
         scm {
-            url = "https://github.com/mtctx/Lumina"
-            connection = "scm:git:git@github.com:mtctx/Lumina.git"
-            developerConnection = "scm:git:ssh://git@github.com:mtctx/Lumina.git"
+            url.set("https://github.com/mtctx/Lumina")
+            connection.set("scm:git:git@github.com:mtctx/Lumina.git")
+            developerConnection.set("scm:git:ssh://git@github.com:mtctx/Lumina.git")
         }
+
+        developers {
+            developer {
+                id.set("mtctx")
+                name.set("mtctx")
+                email.set("me@mtctx.dev")
+            }
+        }
+
     }
 
-    developers {
-        developer {
-            name = "mtctx"
-            email = "me@mtctx.dev"
-        }
-    }
+    configure(KotlinJvm(JavadocJar.Dokka("dokkaGenerateJavadoc"), sourcesJar = true))
+
+    signAllPublications()
+    publishToMavenCentral(automaticRelease = true)
+}
+
+signing {
+    useGpgCmd()
 }
 
 dokka {
     dokkaPublications.html {
-        outputDirectory.set(layout.buildDirectory.dir("dokka"))
+        outputDirectory.set(layout.buildDirectory.dir("dokka/html").get().asFile)
+    }
+    dokkaPublications.javadoc {
+        outputDirectory.set(layout.buildDirectory.dir("dokka/javadoc").get().asFile)
     }
 
     dokkaSourceSets.configureEach {
         jdkVersion.set(21)
         sourceLink {
             localDirectory.set(file("src/main/kotlin"))
-            remoteUrl.set(uri("https://github.com/mtctx/UniPub/"))
+            remoteUrl.set(uri("https://github.com/mtctx/Lumina/blob/main/"))
             remoteLineSuffix.set("#L")
         }
     }

@@ -34,7 +34,7 @@ setups.
 <summary>Gradle (Kotlin DSL)</summary>
 
 ```kotlin
-implementation("dev.mtctx.logger:lumina:4.0.0")
+implementation("dev.mtctx.library:lumina:4.0.0")
 ```
 
 </details>
@@ -45,9 +45,9 @@ implementation("dev.mtctx.logger:lumina:4.0.0")
 ```xml
 
 <dependency>
-  <groupId>dev.mtctx.logger</groupId>
+    <groupId>dev.mtctx.librarydev.mtctx.library</groupId>
     <artifactId>lumina</artifactId>
-  <version>4.0.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
@@ -58,16 +58,16 @@ implementation("dev.mtctx.logger:lumina:4.0.0")
 ### 2. Initialize the Logger
 
 ```kotlin
-import dev.mtctx.logger.*
+import dev.mtctx.library.*
 
 fun main() {
-  val logger = Logger(LoggerConfig())
+    val logger = Logger(LoggerConfig())
 
-  logger.info("Lumina is ready to shine! ✨")
-  logger.error("Something went wrong... but gracefully 😅")
+    logger.info("Lumina is ready to shine! ✨")
+    logger.error("Something went wrong... but gracefully 😅")
 
-  // Always stop the logger gracefully
-  logger.waitForCoroutinesFinish()
+    // Always stop the logger gracefully
+    logger.waitForCoroutinesFinish()
 }
 ```
 

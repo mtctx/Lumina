@@ -1,5 +1,5 @@
 /*
- *     Lumina: LoggingStrategyBuilder.kt
+ *     Lumina: LoggerCallerInfo.kt
  *     Copyright (C) 2025 mtctx
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -16,14 +16,15 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.logger.strategy
+package dev.mtctx.library
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.sync.Mutex
+data class LoggerCallerInfo(
+    val className: String,
+    val lineNumber: Int,
+)
 
-class LoggingStrategyBuilder(
-    strategyName: String,
-    coroutineScope: CoroutineScope,
-    mutex: Mutex,
-    ansiColor: String,
-) : LoggingStrategy(strategyName, coroutineScope, mutex, ansiColor)
+@JvmOverloads
+fun getCallerInfo(skipDepth: Int = 2): LoggerCallerInfo {
+    val element = Throwable().stackTrace[skipDepth]
+    return LoggerCallerInfo(element.className, element.lineNumber)
+}

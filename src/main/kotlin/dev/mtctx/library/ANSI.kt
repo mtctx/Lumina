@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.logger
+package dev.mtctx.library
 
 object ANSI {
     const val BLACK: String = "\u001B[0;30m"
