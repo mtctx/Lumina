@@ -45,7 +45,7 @@ implementation("dev.mtctx.library:lumina:3.0.0")
 ```xml
 
 <dependency>
-    <groupId>dev.mtctx.librarydev.mtctx.library</groupId>
+    <groupId>dev.mtctx.library</groupId>
     <artifactId>lumina</artifactId>
     <version>3.0.0</version>
 </dependency>
@@ -90,7 +90,7 @@ But you can also create your own strategies!
 ## ⚡ Sync vs Async Logging
 
 By default, all logs are asynchronous.
-If you really need *synchronous* logging (e.g. right before shutdown), Lumina provides `debugSync`, `errorSync`, etc.
+If you really need *synchronous* logging (e.g., right before shutdown), Lumina provides `debugSync`, `errorSync`, etc.
 
 ⚠️ **But use them carefully!** They can block if channels are full. (That’s why they’re annotated with
 `@UseSynchronousFunctionsWithCaution`.)
