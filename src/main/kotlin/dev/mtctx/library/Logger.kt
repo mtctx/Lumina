@@ -25,6 +25,7 @@ import kotlinx.coroutines.channels.ChannelResult
 import kotlinx.coroutines.sync.Mutex
 import okio.FileSystem
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.system.exitProcess
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
@@ -32,7 +33,7 @@ import kotlin.time.Instant
 
 val fs = FileSystem.SYSTEM
 
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, DelicateCoroutinesApi::class)
 class Logger(private val config: LoggerConfig) {
     var name: String
     var coroutineScope: CoroutineScope
@@ -43,6 +44,9 @@ class Logger(private val config: LoggerConfig) {
     private var shouldLogRotationStop = false
     private val logRotationJob: Job?
 
+    @Volatile
+    private var isShuttingDown = false
+
     init {
         fs.createDirectories(config.logsDirectory)
         name = config.name
@@ -50,7 +54,6 @@ class Logger(private val config: LoggerConfig) {
         defaultLoggingStrategies = DefaultLoggingStrategies(coroutineScope, mutex)
         logChannel = config.logChannel
         logChannelJob = startListeningForMessages()
-
         logRotationJob = if (config.logRotation.enabled) rotateLogs(config.logRotation.duration) else null
     }
 
@@ -80,26 +83,63 @@ class Logger(private val config: LoggerConfig) {
 
     private fun startListeningForMessages() = coroutineScope.launch {
         for (message in logChannel) {
-            message.strategy.log(
-                config,
-                message.timestamp,
-                message.logToConsole,
-                message.content
-            )
+            try {
+                message.strategy.log(
+                    config,
+                    message.timestamp,
+                    message.logToConsole,
+                    message.content
+                )
+            } catch (t: Throwable) {
+                System.err.println("[$name] Log consumer error: ${t.message}")
+            }
         }
     }
 
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun waitForCoroutinesFinish() = runBlocking {
-        logChannel.close()
-        logChannelJob.join()
+    suspend fun waitForCoroutinesFinish(timeoutMillis: Long = 5000) {
+        if (isShuttingDown) return
+
         shouldLogRotationStop = true
-        logRotationJob?.join()
-        coroutineScope.cancel()
-        config.coroutineScope.cancel()
+        isShuttingDown = true
+        if (!logChannel.isClosedForSend) logChannel.close()
+
+        val drained = withTimeoutOrNull(timeoutMillis) {
+            logChannelJob.join()
+            true
+        } ?: run {
+            while (!logChannel.isEmpty) {
+                val msg = logChannel.tryReceive().getOrNull() ?: break
+                msg.strategy.log(config, msg.timestamp, msg.logToConsole, msg.content)
+            }
+            false
+        }
+
+
+        if (!drained) {
+            println(ANSI.BOLD_YELLOW + "WARNING: Logger shutdown timed out, some logs may be lost." + ANSI.RESET)
+        }
+
+        logRotationJob?.cancelAndJoin()
+        if (coroutineScope !== config.coroutineScope) {
+            coroutineScope.cancel()
+        }
     }
 
-    suspend fun log(logMessage: LogMessage) = logChannel.send(logMessage)
+
+    suspend fun log(logMessage: LogMessage) {
+        if (isShuttingDown || logChannel.isClosedForSend) {
+            logMessage.strategy.log(config, logMessage.timestamp, logMessage.logToConsole, logMessage.content)
+            return
+        }
+        try {
+            logChannel.send(logMessage)
+        } catch (_: Exception) {
+            logSync(logMessage)
+        }
+    }
+
     suspend fun log(strategy: LoggingStrategy, logToConsole: Boolean, vararg content: Any) = log(
         LogMessage(
             arrayOf(*content),
@@ -109,7 +149,22 @@ class Logger(private val config: LoggerConfig) {
         )
     )
 
-    fun logSync(logMessage: LogMessage): ChannelResult<Unit> = logChannel.trySend(logMessage)
+    @OptIn(InternalCoroutinesApi::class)
+    fun logSync(logMessage: LogMessage): ChannelResult<Unit> {
+        return if (isShuttingDown || logChannel.isClosedForSend) {
+            runBlocking {
+                try {
+                    logMessage.strategy.log(config, logMessage.timestamp, logMessage.logToConsole, logMessage.content)
+                } catch (t: Throwable) {
+                    System.err.println("[Logger Sync Flush Error] ${t.message}")
+                }
+            }
+            ChannelResult.success(Unit)
+        } else {
+            logChannel.trySend(logMessage)
+        }
+    }
+
     fun logSync(strategy: LoggingStrategy, logToConsole: Boolean, timestamp: Instant, vararg content: Any) = logSync(
         LogMessage(
             arrayOf(*content),
@@ -159,3 +214,13 @@ class Logger(private val config: LoggerConfig) {
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION)
 annotation class UseSynchronousFunctionsWithCaution
+
+fun gracefulExit(logger: Logger, status: Int = 0, timeoutMillis: Long = 5000) = runBlocking {
+    try {
+        logger.waitForCoroutinesFinish(timeoutMillis)
+    } finally {
+        exitProcess(status)
+    }
+}
+
+fun Logger.exitAppGracefully(status: Int = 0, timeoutMillis: Long = 5000) = gracefulExit(this, status, timeoutMillis)
