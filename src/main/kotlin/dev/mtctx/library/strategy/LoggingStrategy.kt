@@ -71,6 +71,8 @@ open class LoggingStrategy(
     open suspend fun writeToFile(logFilePath: Path, message: String): Unit =
         mutex.withLock {
             withContext(Dispatchers.IO) {
+                if (!fs.exists(logFilePath.parent!!)) fs.createDirectories(logFilePath.parent!!)
+
                 fs.write(logFilePath) {
                     writeUtf8(message)
                     writeUtf8("\n")

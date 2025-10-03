@@ -53,9 +53,16 @@ object LoggerUtils {
     fun getFormattedDate(date: Instant = Clock.System.now()): String =
         date.toLocalDateTime(TimeZone.UTC).format(DATE_FORMAT)
 
-    val logsDir: Path by lazy { fs.canonicalize("./logs".toPath()).resolve(getFormattedDate()) }
+    val logsDir: Path by lazy {
+        val path = "./logs/${getFormattedDate()}".toPath()
+        if (!fs.exists(path)) fs.createDirectories(path)
+        fs.canonicalize(path)
+    }
 
-    fun getLogFileForStrategy(path: Path, strategyName: String): Path = path.resolve("${strategyName.lowercase()}.log")
+    fun getLogFileForStrategy(path: Path, strategyName: String): Path {
+        if (!fs.exists(path)) fs.createDirectories(path)
+        return path.resolve("${strategyName.lowercase()}.log")
+    }
 
     fun parseDateFromText(text: String): Instant = DATE_FORMAT.parse(text).toInstant(TimeZone.UTC)
 }
