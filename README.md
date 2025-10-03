@@ -34,7 +34,7 @@ setups.
 <summary>Gradle (Kotlin DSL)</summary>
 
 ```kotlin
-implementation("dev.mtctx.library:lumina:4.0.0")
+implementation("dev.mtctx.library:lumina:3.0.0")
 ```
 
 </details>
@@ -47,7 +47,7 @@ implementation("dev.mtctx.library:lumina:4.0.0")
 <dependency>
     <groupId>dev.mtctx.librarydev.mtctx.library</groupId>
     <artifactId>lumina</artifactId>
-    <version>4.0.0</version>
+    <version>3.0.0</version>
 </dependency>
 ```
 
@@ -61,7 +61,7 @@ implementation("dev.mtctx.library:lumina:4.0.0")
 import dev.mtctx.library.*
 
 fun main() {
-    val logger = Logger(LoggerConfig())
+    val logger = createLogger() // or createLogger { /* dsl here */ }
 
     logger.info("Lumina is ready to shine! ✨")
     logger.error("Something went wrong... but gracefully 😅")
@@ -82,6 +82,8 @@ Lumina ships with ready-to-use strategies:
 * ⚠️ **WARN** – heads-up situations
 * 🔴 **ERROR** – recoverable problems
 * ⛔ **FATAL** – “stop everything” issues
+
+But you can also create your own strategies!
 
 ---
 
