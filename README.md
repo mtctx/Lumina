@@ -1,128 +1,146 @@
-# 🌟 Lumina – Kotlin Logging That *Feels* Good
+# Lumina – Kotlin Logging That *Feels* Good
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-## ✨ What is Lumina?
+---
 
-Lumina is a modern, **coroutine-first logger for Kotlin**.
-It’s lightweight, colorful, and modular — designed to keep your logs clear, structured, and fun to work with.
+## What is Lumina?
 
-Think of it as a **logging toolkit**: simple defaults for day-to-day work, but fully customizable when you need advanced
-setups.
+Lumina is a coroutine-first logging library for Kotlin.  
+It aims to be simple by default, but flexible enough when you need to configure it for more serious projects.
 
-👉 Full API documentation: [lumina.apidoc.mtctx.dev](https://lumina.apidoc.mtctx.dev/)
+You get clean console output with ANSI colors, structured log files, and a DSL for building messages that don’t just end
+up as unreadable strings.
 
 ---
 
-## 🎯 Key Features
+## What’s New in v4
 
-* 🌈 **Colorful Console Output** – Pretty ANSI colors that make logs readable at a glance.
-* 🚀 **Asynchronous by Default** – Uses Kotlin coroutines and channels to keep logging off your main thread.
-* 🧵 **Thread-Safe Logging** – Safe across multiple threads using `Mutex`.
-* 📦 **Message Queuing** – All logs pass through a channel → no lost messages, no blocking.
-* 🔄 **Log Rotation** – Old log directories are automatically cleaned up.
-* 🛠️ **Extensible Strategies** – Build custom strategies with `LoggingStrategyBuilder`.
-* 📝 **File Logging Included** – Out-of-the-box structured log files per log level.
+- Cleaner design: logging, configuration, and strategies are properly separated.
+- DSL-based configuration (`createLogger { ... }`).
+- Configurable log rotation with safe defaults.
+- Structured message DSL (`logger.info { +"line"; keyValue { ... } }`).
+- Better shutdown handling (`waitForCoroutinesToFinish`).
+- Extensible strategies: build your own `LoggingStrategy`.
 
 ---
 
-## 🎮 Quick Start
+## Installation
 
-### 1. Add Dependency
+[Available on Maven Central](https://central.sonatype.com/artifact/dev.mtctx.library/lumina)
 
-<details>
-<summary>Gradle (Kotlin DSL)</summary>
+### Gradle (Kotlin DSL)
 
 ```kotlin
-implementation("dev.mtctx.library:lumina:3.0.0")
-```
+implementation("dev.mtctx.lumina:lumina:4.0.0")
+````
 
-</details>
-
-<details>
-<summary>Maven</summary>
+### Maven
 
 ```xml
 
 <dependency>
-    <groupId>dev.mtctx.library</groupId>
+    <groupId>dev.mtctx.lumina</groupId>
     <artifactId>lumina</artifactId>
-    <version>3.0.0</version>
+    <version>4.0.0</version>
 </dependency>
 ```
 
-</details>
-
 ---
 
-### 2. Initialize the Logger
+## Quick Start
 
 ```kotlin
-import dev.mtctx.library.*
+import mtctx.lumina.v4.*
 
 fun main() {
-    val logger = createLogger() // or createLogger { /* dsl here */ }
+    val logger = createLogger {
+        name = "MyApp"
 
-    logger.info("Lumina is ready to shine! ✨")
-    logger.error("Something went wrong... but gracefully 😅")
+        log {
+            rotation {
+                enabled = true
+                duration = 7.days
+                interval = 1.days
+            }
+        }
+    }
 
-    // Always stop the logger gracefully
-    logger.waitForCoroutinesFinish()
+    runBlocking {
+        logger.info { +"Lumina is ready" }
+        logger.error { +"Something went wrong" }
+    }
+
+    logger.waitForCoroutinesToFinish()
 }
 ```
 
 ---
 
-## 🎨 Log Levels
+## Log Levels
 
-Lumina ships with ready-to-use strategies:
+Lumina ships with common levels:
 
-* 🟦 **DEBUG** – for curious dev moments
-* ℹ️ **INFO** – the “nice to know” logs
-* ⚠️ **WARN** – heads-up situations
-* 🔴 **ERROR** – recoverable problems
-* ⛔ **FATAL** – “stop everything” issues
+* DEBUG
+* INFO
+* WARN
+* ERROR
+* FATAL
 
-But you can also create your own strategies!
-
----
-
-## ⚡ Sync vs Async Logging
-
-By default, all logs are asynchronous.
-If you really need *synchronous* logging (e.g., right before shutdown), Lumina provides `debugSync`, `errorSync`, etc.
-
-⚠️ **But use them carefully!** They can block if channels are full. (That’s why they’re annotated with
-`@UseSynchronousFunctionsWithCaution`.)
+Each has both asynchronous (`logger.info { ... }`) and synchronous (`logger.infoSync { ... }`) variants.
+Use sync logging only when you must flush logs immediately (for example, right before shutdown).
 
 ---
 
-## 🛠️ Custom Strategies
+## Structured Messages
 
-Need something special? You can build your own strategy:
+Instead of plain strings, you can build structured logs:
+
+```kotlin
+logger.info {
+    +"Application started"
+    keyValue {
+        define("Config", "dbUrl", "jdbc://localhost:5432")
+    }
+    +"Environment: production"
+}
+```
+
+---
+
+## Custom Strategies
+
+If the default levels aren’t enough, you can create your own strategy:
 
 ```kotlin
 val custom = LoggingStrategyBuilder(
     strategyName = "CUSTOM",
-    coroutineScope = myScope,
-    mutex = Mutex(),
-    ansiColor = ANSI.PURPLE
+    ansiColor = ANSI.PURPLE,
+    config = myConfig,
+    fileSinks = mutableMapOf()
 )
 ```
 
 ---
 
-## 📚 Docs
+## Migration from v3
 
-Full API reference: [https://lumina.apidoc.mtctx.dev](https://lumina.apidoc.mtctx.dev/)
+* `Logger` → `Lumina`
+* `LoggerConfig` → `LuminaConfig` (with a new DSL)
+* `LogMessageDSL` → `MessageDSL`
+* `waitForCoroutinesFinish` → `waitForCoroutinesToFinish`
 
----
-
-## 📜 License
-
-Lumina is open source under the **GNU GPL v3**.
-Use it, hack it, improve it — just keep it free. ❤️
+v3 APIs are still present but deprecated, with migration hints in the code.
 
 ---
 
-✨ Lumina isn’t just a logger — it’s your app’s sidekick in understanding itself.
+## Documentation
+
+API reference: [https://lumina.apidoc.mtctx.dev](https://lumina.apidoc.mtctx.dev/)
+
+---
+
+## License
+
+Lumina is free software under the GNU GPL v3.
+Use it, modify it, and share it — just keep it free.

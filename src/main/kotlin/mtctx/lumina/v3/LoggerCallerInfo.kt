@@ -16,13 +16,15 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v3
 
+@Deprecated("Unused & Removed")
 data class LoggerCallerInfo(
     val className: String,
     val lineNumber: Int,
 )
 
+@Deprecated("Unused & Removed")
 @JvmOverloads
 fun getCallerInfo(skipDepth: Int = 2): LoggerCallerInfo {
     val element = Throwable().stackTrace[skipDepth]

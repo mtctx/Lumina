@@ -16,14 +16,15 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library.strategy
+package mtctx.lumina.v4.strategy
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.sync.Mutex
+import mtctx.lumina.v4.LuminaConfig
+import okio.BufferedSink
+import okio.Path
 
 class LoggingStrategyBuilder(
     strategyName: String,
-    coroutineScope: CoroutineScope,
-    mutex: Mutex,
     ansiColor: String,
-) : LoggingStrategy(strategyName, coroutineScope, mutex, ansiColor)
+    config: LuminaConfig,
+    fileSinks: MutableMap<Path, BufferedSink>
+) : LoggingStrategy(strategyName, ansiColor, config, fileSinks)

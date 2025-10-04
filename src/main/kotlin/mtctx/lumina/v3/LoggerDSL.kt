@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v3
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +28,7 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
+@Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.LuminaDSL"))
 class LoggerDSL {
     var name: String = "Lumina"
     var logsDirectory: Path = LoggerUtils.logsDir

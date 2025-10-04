@@ -16,28 +16,30 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library.strategy
+package mtctx.lumina.v3.strategy
 
-import dev.mtctx.library.ANSI
-import dev.mtctx.library.ANSI.translateToANSI
-import dev.mtctx.library.LoggerConfig
-import dev.mtctx.library.LoggerUtils
-import dev.mtctx.library.fs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import mtctx.lumina.v3.ANSI
+import mtctx.lumina.v3.ANSI.translateToANSI
+import mtctx.lumina.v3.LoggerConfig
+import mtctx.lumina.v3.LoggerUtils
+import mtctx.lumina.v3.fs
 import okio.Path
 import java.io.IOException
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
+@Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.LoggingStrategy"))
 open class LoggingStrategy(
     private val strategyName: String, private val coroutineScope: CoroutineScope, private val mutex: Mutex,
     private val ansiColor: String
 ) {
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.LoggingStrategy::log"))
     open suspend fun log(
         config: LoggerConfig,
         timestamp: Instant,
@@ -57,6 +59,7 @@ open class LoggingStrategy(
         }
     }
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.LoggingStrategy::generateMessage"))
     open fun generateMessage(
         config: LoggerConfig, formattedTimestamp: String,
         content: Array<out Any>
@@ -64,9 +67,10 @@ open class LoggingStrategy(
         formattedTimestamp,
         "$ansiColor$strategyName${ANSI.RESET}",
         config.name,
-        content
+        content.map { it.toString() }.toTypedArray()
     )
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.LoggingStrategy::log"))
     @Throws(IOException::class)
     open suspend fun writeToFile(logFilePath: Path, message: String): Unit =
         mutex.withLock {

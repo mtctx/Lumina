@@ -16,15 +16,17 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v3
 
-import dev.mtctx.library.strategy.LoggingStrategy
-import dev.mtctx.library.strategy.LoggingStrategyBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
+import mtctx.lumina.v3.strategy.LoggingStrategy
+import mtctx.lumina.v3.strategy.LoggingStrategyBuilder
 
+@Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies"))
 class DefaultLoggingStrategies(private val coroutineScope: CoroutineScope, private val mutex: Mutex) {
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies::debugStrategy"))
     val debugStrategy: LoggingStrategy = LoggingStrategyBuilder(
         strategyName = "DEBUG",
         coroutineScope = coroutineScope,
@@ -32,6 +34,7 @@ class DefaultLoggingStrategies(private val coroutineScope: CoroutineScope, priva
         ansiColor = ANSI.GREEN,
     )
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies::errorStrategy"))
     val errorStrategy: LoggingStrategy = LoggingStrategyBuilder(
         strategyName = "ERROR",
         coroutineScope = coroutineScope,
@@ -39,6 +42,7 @@ class DefaultLoggingStrategies(private val coroutineScope: CoroutineScope, priva
         ansiColor = ANSI.RED,
     )
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies::fatalStrategy"))
     val fatalStrategy: LoggingStrategy = LoggingStrategyBuilder(
         strategyName = "FATAL",
         coroutineScope = coroutineScope,
@@ -46,6 +50,7 @@ class DefaultLoggingStrategies(private val coroutineScope: CoroutineScope, priva
         ansiColor = ANSI.BOLD_RED,
     )
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies::infoStrategy"))
     val infoStrategy: LoggingStrategy = LoggingStrategyBuilder(
         strategyName = "INFO",
         coroutineScope = coroutineScope,
@@ -53,6 +58,7 @@ class DefaultLoggingStrategies(private val coroutineScope: CoroutineScope, priva
         ansiColor = ANSI.CYAN,
     )
 
+    @Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.strategy.DefaultLoggingStrategies::warnStrategy"))
     val warnStrategy: LoggingStrategy = LoggingStrategyBuilder(
         strategyName = "WARN",
         coroutineScope = coroutineScope,

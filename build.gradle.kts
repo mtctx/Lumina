@@ -21,6 +21,7 @@ import com.vanniktech.maven.publish.KotlinJvm
 
 plugins {
     kotlin("jvm") version "2.1.20"
+    kotlin("plugin.serialization") version "2.2.0"
     id("org.jetbrains.dokka") version "2.1.0-Beta"
     id("org.jetbrains.dokka-javadoc") version "2.1.0-Beta"
     //id("dev.mtctx.unipub") version "2.0.7" <-- Cannot inject into vanniktech properties lookup right now.
@@ -29,7 +30,7 @@ plugins {
 }
 
 group = "dev.mtctx.library"
-version = "3.0.2"
+version = "4.0.0"
 
 repositories {
     mavenCentral()
@@ -37,6 +38,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     api("com.squareup.okio:okio:3.16.0")

@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v3
 
 import kotlinx.datetime.*
 import kotlinx.datetime.format.Padding
@@ -27,6 +27,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
+@Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.Utils", "mtctx.lumina.v4.LuminaConfig"))
 @OptIn(ExperimentalTime::class)
 object LoggerUtils {
     val TIME_FORMAT = LocalDateTime.Format {

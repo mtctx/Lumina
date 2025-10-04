@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v3
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -25,13 +25,15 @@ import okio.Path
 import kotlin.time.Duration.Companion.days
 import kotlin.time.ExperimentalTime
 
+@Deprecated("Use v4 instead", ReplaceWith("mtctx.lumina.v4.LuminaConfig"))
 @OptIn(ExperimentalTime::class)
 data class LoggerConfig(
     val name: String = "Lumina",
     val logsDirectory: Path = LoggerUtils.logsDir,
     val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob()),
-    val format: (timestamp: String, coloredStrategyName: String, loggerName: String, content: Array<out Any>) -> String = { timestamp, coloredStrategyName, loggerName, content ->
-        "[$timestamp] - $coloredStrategyName - $loggerName - ${content.joinToString { it.toString() }}"
+    val format: (timestamp: String, coloredStrategyName: String, loggerName: String, content: Array<String>) -> String = { timestamp, coloredStrategyName, loggerName, content ->
+        val template = "[$timestamp] - $coloredStrategyName - $loggerName - "
+        content.joinToString("\n") { line -> "$template${line.replace("\n", "\n$template")}" }
     },
     val logChannelSize: Int = Channel.UNLIMITED,
     val logChannel: Channel<LogMessage> = Channel(logChannelSize),

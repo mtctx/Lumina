@@ -16,7 +16,7 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package dev.mtctx.library
+package mtctx.lumina.v4
 
 object ANSI {
     const val BLACK: String = "\u001B[0;30m"
@@ -154,5 +154,9 @@ object ANSI {
         }
 
         return result.toString()
+    }
+
+    fun String.stripANSI(): String {
+        return this.replace(Regex("\u001B\\[[0-9;]*m"), "")
     }
 }
