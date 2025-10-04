@@ -13,11 +13,6 @@ permissions:
 
 jobs:
   build:
-    if: |
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || 
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.merged == true &&
-       github.event.pull_request.base.ref == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -43,11 +38,6 @@ jobs:
           path: dokka/html
 
   deploy:
-    if: |
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || 
-      (github.event_name == 'pull_request' &&
-       github.event.pull_request.merged == true &&
-       github.event.pull_request.base.ref == 'main')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
