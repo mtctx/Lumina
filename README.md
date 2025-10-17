@@ -32,7 +32,7 @@ up as unreadable strings.
 ### Gradle (Kotlin DSL)
 
 ```kotlin
-implementation("dev.mtctx.lumina:lumina:4.1.0")
+implementation("dev.mtctx.lumina:lumina:4.1.1")
 ````
 
 ### Maven
@@ -42,7 +42,7 @@ implementation("dev.mtctx.lumina:lumina:4.1.0")
 <dependency>
     <groupId>dev.mtctx.lumina</groupId>
     <artifactId>lumina</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
 </dependency>
 ```
 
