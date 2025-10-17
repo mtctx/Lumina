@@ -1,5 +1,5 @@
 /*
- *     Lumina: Utils.kt
+ *     Lumina: LuminaSLF4JServiceProvider.kt
  *     Copyright (C) 2025 mtctx
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -16,25 +16,21 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:OptIn(ExperimentalTime::class)
+package mtctx.lumina.v4.slf4j
 
-package mtctx.lumina.v4
+import org.slf4j.ILoggerFactory
+import org.slf4j.IMarkerFactory
+import org.slf4j.spi.MDCAdapter
+import org.slf4j.spi.SLF4JServiceProvider
 
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format.DateTimeFormat
-import kotlinx.datetime.toInstant
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+class LuminaSLF4JServiceProvider : SLF4JServiceProvider {
+    private val factory = LuminaLoggerFactory()
 
-fun String.toInstant(format: DateTimeFormat<LocalDateTime>, timeZone: TimeZone = TimeZone.UTC): Instant =
-    format.parse(this).toInstant(timeZone)
+    override fun getLoggerFactory(): ILoggerFactory = factory
+    override fun getRequestedApiVersion(): String = "2.0"
 
-internal fun String.formatMessage(vararg args: Any?): String {
-    if (args.isEmpty()) return this
-    var formattedString = this
-    args.forEach { arg ->
-        formattedString = formattedString.replaceFirst("{}", arg?.toString() ?: "")
-    }
-    return formattedString
+    override fun initialize() {}
+
+    override fun getMarkerFactory(): IMarkerFactory? = null
+    override fun getMDCAdapter(): MDCAdapter? = null
 }

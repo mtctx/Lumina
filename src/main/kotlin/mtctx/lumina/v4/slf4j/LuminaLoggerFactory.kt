@@ -1,5 +1,5 @@
 /*
- *     Lumina: Utils.kt
+ *     Lumina: LuminaLoggerFactory.kt
  *     Copyright (C) 2025 mtctx
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -16,25 +16,19 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:OptIn(ExperimentalTime::class)
+package mtctx.lumina.v4.slf4j
 
-package mtctx.lumina.v4
+import mtctx.lumina.v4.LuminaConfig
+import org.slf4j.ILoggerFactory
+import org.slf4j.Logger
+import java.util.concurrent.ConcurrentHashMap
 
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format.DateTimeFormat
-import kotlinx.datetime.toInstant
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+class LuminaLoggerFactory : ILoggerFactory {
+    private val loggers = ConcurrentHashMap<String, Logger>()
 
-fun String.toInstant(format: DateTimeFormat<LocalDateTime>, timeZone: TimeZone = TimeZone.UTC): Instant =
-    format.parse(this).toInstant(timeZone)
+    override fun getLogger(name: String): Logger =
+        loggers.getOrPut(name) { LuminaSLF4J(name) }
 
-internal fun String.formatMessage(vararg args: Any?): String {
-    if (args.isEmpty()) return this
-    var formattedString = this
-    args.forEach { arg ->
-        formattedString = formattedString.replaceFirst("{}", arg?.toString() ?: "")
-    }
-    return formattedString
+    fun getLogger(config: LuminaConfig): Logger =
+        loggers.getOrPut(config.name) { LuminaSLF4J(config) }
 }
